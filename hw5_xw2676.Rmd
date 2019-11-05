@@ -5,10 +5,20 @@ output: github_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE,
-                      warning = FALSE)
+                      warning = FALSE,
+                      fig.width = 8,
+                      fig.height = 6,
+                      out.width = "90%")
 library(tidyverse)
-set.seed(10)
+library(ggridges)
 library(rvest)
+set.seed(10)
+options(
+  ggplot2.continuous.colour = "viridis",
+  ggplot2.continuous.fill = "viridis"
+)
+scale_colour_discrete = scale_colour_viridis_d
+scale_fill_discrete = scale_fill_viridis_d
 ```
 
 ## Problem 1
@@ -67,7 +77,12 @@ arm_df = filename %>%
 
 ggplot(arm_df, aes(x = week, y = value, color = subject_ID, group = subject_ID)) +
   geom_line() +
-  facet_grid(~arm)
+  facet_grid(~arm) +
+  labs(
+    title = "Plot 1 Value in each week of each subject",
+    x = "Week",
+    y = "Value"
+  ) 
 
 ```
 
@@ -106,7 +121,9 @@ sim_results =
     unnest(output) %>% 
   mutate(
     result = ifelse(p.value < 0.05, "reject", "accept")
-  ) %>% 
+  ) 
+
+data_reject = sim_results %>% 
   group_by(beta_1, result) %>% 
   summarise(n = n()) %>% 
   pivot_wider(
@@ -118,7 +135,56 @@ sim_results =
     reject_rate = reject/total
   )
 
-ggplot(sim_results, aes(x = beta_1, y = reject_rate)) +
-  geom_line()
+ggplot(data_reject, aes(x = beta_1, y = reject_rate)) +
+  geom_point() +
+  labs(
+    title = "Plot 2 Rejection proportion",
+    x = "Beta_1",
+    y = "Rejection proportion"
+  ) +
+　geom_text(aes(y = reject_rate + 0.03, label = reject_rate)) +
+  geom_smooth(se = FALSE)
+
+average_data = sim_results %>% 
+  group_by(beta_1) %>% 
+  summarise(
+    mean = round(mean(estimate),3)
+  )
 ```
+
+We can see from Plot 1 that the proportion of times the null was rejected increases with the effect size increases, which means that when effect size increases, the power of the test increases.
+
+```{r}
+ggplot(average_data, aes(x = beta_1, y = mean)) +
+  geom_point() +
+  labs(
+    title = "Plot 3 Average estimate of each beta_1",
+    x = "Beta_1",
+    y = "Average estimate"
+  ) +
+　geom_text(aes(y = mean + 0.1, label = mean)) +
+  geom_smooth(se = FALSE)
+
+reject_average_data = sim_results %>% 
+  filter(result == "reject") %>% 
+  group_by(beta_1) %>% 
+  summarise(
+    mean = round(mean(estimate),3)
+  )
+
+ggplot(reject_average_data, aes(x = beta_1, y = mean)) +
+  geom_point() +
+  labs(
+    title = "Plot 4 Average estimate that are rejected of each beta_1 ",
+    x = "Beta_1",
+    y = "Average estimate"
+  ) +
+　geom_text(aes(y = mean + 0.1, label = mean)) +
+  geom_smooth(se = FALSE)
+```
+
+The sample average of $\hat{\beta}_1$ across tests for which the null is rejected is not equal to the true value of $\hat{\beta}_1$. Because only when its value is far away from the true value, then it can be rejected. So when the effect size is small, the proportion of rejection is small, so the average will be a little larger than the true value. When the effect size is large, then the proportion of rejection is large, so the average will be approximately equal to the true value.
+
+
+
 
