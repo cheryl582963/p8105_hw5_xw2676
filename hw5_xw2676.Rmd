@@ -31,3 +31,44 @@ replace_missing_value = function(x) {
 iris_modified = as.tibble(map(iris_with_missing, replace_missing_value))
 ```
 
+## Problem 2
+```{r, message=FALSE, warning=FALSE}
+filename = list.files("./data/problem2") %>% 
+  as.tibble() 
+
+file_base = "./data/problem2/"
+
+file_con_exp = vector("list", length = 20)
+for(i in 1:20){
+  file_con_exp[i] = str_c(file_base, filename[i,1])
+}
+
+con_exp = map(file_con_exp, read_csv)
+
+arm_df = filename %>% 
+  mutate(
+    data = con_exp
+  ) %>% 
+  unnest() %>% 
+  separate(value, into = c("arm","subject_ID"), sep = "_") %>% 
+  mutate(
+    subject_ID = str_replace(subject_ID, ".csv","")
+  ) %>% 
+  pivot_longer(
+    3:10,
+    names_to = "week",
+    names_prefix = "week_"
+  ) %>% 
+  mutate(
+    arm = as.factor(arm),
+    subject_ID = as.factor(subject_ID),
+    week = as.factor(week)
+  )
+
+ggplot(arm_df, aes(x = week, y = value, color = subject_ID, group = subject_ID))+
+  geom_line()+
+  facet_grid(~arm)
+
+```
+
+From the plots above, we can see that there is a overall rise of the value observed in the experiment group, and there is no trend in control group.
